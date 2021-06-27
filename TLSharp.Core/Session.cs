@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Web;
 using TeleSharp.TL;
 using TLSharp.Core.MTProto;
 using TLSharp.Core.MTProto.Crypto;
@@ -72,11 +73,11 @@ namespace TLSharp.Core
 
     public class Session
     {
-        internal object Lock = new object ();
+        internal object Lock = new object();
 
-	    private const string defaultConnectionAddress = "149.154.175.100";//"149.154.167.50";
+        private const string defaultConnectionAddress = "149.154.175.100";//"149.154.167.50";
 
-		private const int defaultConnectionPort = 443;
+        private const int defaultConnectionPort = 443;
 
         public string SessionUserId { get; set; }
         internal DataCenter DataCenter { get; set; }
@@ -151,7 +152,7 @@ namespace TLSharp.Core
                 }
 
                 var authData = Serializers.Bytes.Read(reader);
-                var defaultDataCenter = new DataCenter (serverAddress, port);
+                var defaultDataCenter = new DataCenter(serverAddress, port);
 
                 return new Session(store)
                 {
@@ -176,7 +177,7 @@ namespace TLSharp.Core
 
         public static Session TryLoadOrCreateNew(ISessionStore store, string sessionUserId)
         {
-            var defaultDataCenter = new DataCenter (defaultConnectionAddress, defaultConnectionPort);
+            var defaultDataCenter = new DataCenter(defaultConnectionAddress, defaultConnectionPort);
 
             return store.Load(sessionUserId) ?? new Session(store)
             {
@@ -210,4 +211,31 @@ namespace TLSharp.Core
             return newMessageId;
         }
     }
+
+    public class WebSessionStore : ISessionStore
+    {
+        public void Save(Session session)
+        {
+            var file = HttpContext.Current.Server.MapPath("/App_Data/{0}.dat");
+
+            using (FileStream fileStream = new FileStream(string.Format(file, (object)session.SessionUserId), FileMode.OpenOrCreate))
+            {
+                byte[] bytes = session.ToBytes();
+                fileStream.Write(bytes, 0, bytes.Length);
+            }
+        }
+
+        public Session Load(string sessionUserId)
+        {
+            var file = HttpContext.Current.Server.MapPath("/App_Data/{0}.dat");
+
+            string path = string.Format(file, (object)sessionUserId);
+            if (!File.Exists(path))
+                return (Session)null;
+
+            var buffer = File.ReadAllBytes(path);
+            return Session.FromBytes(buffer, this, sessionUserId);
+        }
+    }
+
 }

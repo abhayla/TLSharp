@@ -119,7 +119,7 @@ namespace TLSharp.Core
             else if (dcIpVersion == DataCenterIPVersion.OnlyIPv4)
                 dcs = dcOptions.Where(d => d.Id == dcId && !d.Ipv6); // selects only ipv4 addresses
             else
-                dcs = dcOptions.Where(d => d.Id == dcId); // any
+                dcs = dcOptions.Where(d => d.Id == dcId && !d.Ipv6); // any
 
             dcs = dcs.Where(d => !d.MediaOnly);
 
